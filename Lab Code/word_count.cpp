@@ -1,8 +1,13 @@
 #include<bits/stdc++.h>
 
 int main(){
+
+	FILE *input = fopen("input_wc.txt", "r");
+	FILE *output = fopen("output_wc.txt", "w");
+
+
 	char ch[100];
-	fgets(ch, sizeof(ch), stdin);
+	fgets(ch, sizeof(ch), input);
 	int cnt = 0, ans  = 0;
 	bool fl = false;
 	for(int i = 0; i < 100; i++){
@@ -24,5 +29,6 @@ int main(){
 			cnt++;
 		}
 	}
-	printf("%d", ans);
+	fprintf(output, "%d", ans);
+	// fprintf("%d", ans);
 }
