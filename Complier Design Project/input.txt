@@ -1,7 +1,6 @@
 int main() {
     int a, b;
-    scanf("%d", &a);
-    b = a + 10;
-    printf("%d", b);
+    scanf("Enter input %d", &a);
+    printf("hello bangladesh %d", a);
     return 0;
 }

@@ -7,7 +7,7 @@
 
 typedef struct {
     char name[50];
-    int value;
+    char value;
 } Variable;
 
 Variable vars[MAX_VAR];
@@ -18,9 +18,17 @@ void clean(char *str) {
     str[strcspn(str, ");\n")] = 0;
 }
 
+void removespace(char *str) {
+    while (isspace(*str)) str++;  // Skip all leading spaces
+}
+
 // Add variable to symbol table
 void declareVariables(char *line) {
+
+    removespace(line);
+
     char *token = strtok(line + 3, " ,;\n");
+    printf("%s\n", token);
     while (token) {
         strcpy(vars[varCount].name, token);
         vars[varCount].value = 0;
@@ -62,21 +70,128 @@ void handleAssignment(char *line) {
 
 // Handle scanf("%d", &a);
 void handleScanf(char *line) {
-    char var[50];
-    sscanf(line, "scanf(\"%%d\", &%[^)]", var);
-    clean(var);
-    int idx = getVarIndex(var);
-    printf("Input value for %s: ", var);
-    scanf("%d", &vars[idx].value);
+    char format_str[100];
+    char var_names[10][50];
+    int var_count = 0;
+
+    bool in_format = false, after_format = false;
+    int i = 0, format_idx = 0;
+
+    // Extract format string and variable names
+    while (line[i] != '\0' && line[i] != ';') {
+        if (line[i] == '"' && !in_format) {
+            in_format = true;
+            i++;
+            continue;
+        } else if (line[i] == '"' && in_format) {
+            in_format = false;
+            after_format = true;
+            i++;
+            continue;
+        }
+
+        if (in_format) {
+            format_str[format_idx++] = line[i];
+        } else if (after_format && isalpha(line[i])) {
+            int k = 0;
+            while (isalnum(line[i])) {
+                var_names[var_count][k++] = line[i++];
+            }
+            var_names[var_count][k] = '\0';
+            var_count++;
+            continue;
+        }
+
+        i++;
+    }
+    format_str[format_idx] = '\0';
+
+    // Parse format specifiers
+    char *fmt_ptr = format_str;
+    int v = 0;
+
+    while (*fmt_ptr && v < var_count) {
+        if (*fmt_ptr == '%' && *(fmt_ptr + 1)) {
+            int idx = getVarIndex(var_names[v]);
+            if (idx == -1) {
+                printf("Variable %s not declared.\n", var_names[v]);
+            } else if (*(fmt_ptr + 1) == 'd') {
+                printf("Enter integer for %s: ", var_names[v]);
+                scanf("%d", &vars[idx].value);
+            } else if (*(fmt_ptr + 1) == 's') {
+                // optional string input
+                char temp[100];
+                printf("Enter string for %s: ", var_names[v]);
+                scanf("%s", temp);
+                // store string if needed
+            }
+            v++;
+            fmt_ptr++; // skip next char too
+        }
+        fmt_ptr++;
+    }
 }
 
-// Handle printf("%d", b);
+// Handle printf
 void handlePrintf(char *line) {
-    char var[50];
-    sscanf(line, "printf(\"%%d\", %[^)]", var);
-    clean(var);
-    printf("%d\n", vars[getVarIndex(var)].value);
+    char var_names[10][50];
+    char format_str[100];
+    int var_count = 0;
+
+    bool in_format = false, after_format = false;
+    int i = 0, formate_idx = 0;
+
+    // Extract format string and variable names
+    while (line[i] != '\0' && line[i] != ';') {
+        if (line[i] == '"' && in_format == false) {
+            in_format = true;
+            i++;
+            continue;
+        }
+        else if (line[i] == '"' && in_format) {
+            in_format = false;
+            after_format = true;
+            i++;
+            continue;
+        }
+
+        if (in_format) {
+            format_str[formate_idx++] = line[i];
+        } 
+        else if (after_format && isalpha(line[i])) {
+            int k = 0;
+            while (isalnum(line[i])) {
+                var_names[var_count][k++] = line[i++];
+            }
+            var_names[var_count][k] = '\0';
+            var_count++;
+            continue;
+        }
+
+        i++;
+    }
+    format_str[formate_idx] = '\0';
+
+    // Print formatted output
+    int v = 0;
+    for (int j = 0; format_str[j] != '\0'; j++) {
+        if (format_str[j] == '%' && (format_str[j + 1] == 'd')) {
+            int idx = getVarIndex(var_names[v]);
+            if (idx != -1) {
+                printf("%d", vars[idx].value);
+            } else {
+                printf("Error");
+            }
+            v++;
+            j++;
+        } else {
+            putchar(format_str[j]);
+        }
+    }
+
+    putchar('\n');
 }
+
 
 // Entry point
 int main() {
