@@ -1,6 +1,14 @@
+#include<stdio.h>
 int main() {
     int a, b;
-    scanf("Enter input %d", &a);
-    printf("hello bangladesh %d", a);
-    return 0;
+    int res;
+    res = b + a;
+    scanf(" Enter a and b %d %d", &a, &b);
+    int result = a + b;
+    printf("a is %d , b is %d and result is %d", a, b, result);
+
+    char name [100];
+    scanf("Enter your name %s", &name);
+    scanf("%s", [100]);
+
 }

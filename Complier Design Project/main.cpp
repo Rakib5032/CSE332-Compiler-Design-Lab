@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#define MAX_SIZE 100
 #define MAX_VAR 100
 
 typedef struct {
     char name[50];
-    char value;
+    int value;
+    char charValue;
+    char strValue[100]; 
+    int isChar;         
 } Variable;
 
 Variable vars[MAX_VAR];
@@ -18,20 +21,56 @@ void clean(char *str) {
     str[strcspn(str, ");\n")] = 0;
 }
 
-void removespace(char *str) {
-    while (isspace(*str)) str++;  // Skip all leading spaces
-}
-
 // Add variable to symbol table
 void declareVariables(char *line) {
+    int isCharType = 0, isStringType = 0, isIntType = 0;
 
-    removespace(line);
+    // Detect type
+    if (strstr(line, "char") != NULL) {
+        if (strchr(line, '[')) {
+            isStringType = 1;
+        } else {
+            isCharType = 1;
+        }
+    } else if (strstr(line, "int") != NULL) {
+        isIntType = 1;
+    }
 
-    char *token = strtok(line + 3, " ,;\n");
-    printf("%s\n", token);
+    // Skip the type keyword ("int", "char", etc.)
+    char *declaration = strchr(line, ' ');
+    if (!declaration) return; // Invalid line
+    declaration++; // Move past the space
+
+    // Now tokenize variable names
+    char *token = strtok(declaration, " ,;\n");
     while (token) {
+        // printf("%s ", token);
+        // char val_token[10];
+        // strcpy(val_token, token);
+        // char *next = strtok(NULL, " ,;\n");
+        // if(next && next[0] == '['){
+        //     strcat(val_token, next);
+        // }
+        // else if(next){
+        //     token = next;
+        // }
+        // else{
+        //     token = NULL;
+        // }
+
         strcpy(vars[varCount].name, token);
-        vars[varCount].value = 0;
+
+        if (isStringType) {
+            vars[varCount].isChar = 2;
+            vars[varCount].strValue[0] = '\0';
+        } else if (isCharType) {
+            vars[varCount].isChar = 1;
+            vars[varCount].charValue = '\0';
+        } else if (isIntType) {
+            vars[varCount].isChar = 0;
+            vars[varCount].value = 0;
+        }
+
         varCount++;
         token = strtok(NULL, " ,;\n");
     }
@@ -39,33 +78,11 @@ void declareVariables(char *line) {
 
 // Find variable by name
 int getVarIndex(const char *name) {
-    for (int i = 0; i < varCount; i++)
+    for (int i = 0; i < varCount; i++) {
         if (strcmp(vars[i].name, name) == 0)
             return i;
-    return -1;
-}
-
-// Handle a = b + 5; or a = 5;
-void handleAssignment(char *line) {
-    char var[50], op1[50], op[5], op2[50];
-    int idx, val;
-
-    if (sscanf(line, "%s = %s %s %s", var, op1, op, op2) == 4) {
-        idx = getVarIndex(var);
-        int a = isdigit(op1[0]) ? atoi(op1) : vars[getVarIndex(op1)].value;
-        int b = isdigit(op2[0]) ? atoi(op2) : vars[getVarIndex(op2)].value;
-
-        if (strcmp(op, "+") == 0) val = a + b;
-        else if (strcmp(op, "-") == 0) val = a - b;
-        else if (strcmp(op, "*") == 0) val = a * b;
-        else if (strcmp(op, "/") == 0) val = a / b;
-
-        vars[idx].value = val;
-    } else if (sscanf(line, "%s = %d", var, &val) == 2) {
-        vars[getVarIndex(var)].value = val;
-    } else if (sscanf(line, "%s = %s", var, op1) == 2) {
-        vars[getVarIndex(var)].value = vars[getVarIndex(op1)].value;
     }
+    return -1;
 }
 
 // Handle scanf("%d", &a);
@@ -106,33 +123,36 @@ void handleScanf(char *line) {
     }
     format_str[format_idx] = '\0';
 
-    // Parse format specifiers
-    char *fmt_ptr = format_str;
     int v = 0;
-
-    while (*fmt_ptr && v < var_count) {
-        if (*fmt_ptr == '%' && *(fmt_ptr + 1)) {
+    for (int j = 0; format_str[j] != '\0'; j++) {
+        if (format_str[j] == '%') {
             int idx = getVarIndex(var_names[v]);
-            if (idx == -1) {
+            if (idx != -1) {
+                if (format_str[j + 1] == 'd') {
+                    scanf("%d", &vars[idx].value);
+                }
+                else if (format_str[j + 1] == 'c') {
+                    //fgets(&vars[idx].charValue, sizeof(&vars[idx].charValue), stdin);
+                    getchar();
+                    scanf("%c", &vars[idx].charValue);
+                    
+                }
+                else if (format_str[j + 1] == 's') {
+                    scanf(" %s", vars[idx].strValue);
+                }
+            }
+            else {
                 printf("Variable %s not declared.\n", var_names[v]);
-            } else if (*(fmt_ptr + 1) == 'd') {
-                printf("Enter integer for %s: ", var_names[v]);
-                scanf("%d", &vars[idx].value);
-            } else if (*(fmt_ptr + 1) == 's') {
-                // optional string input
-                char temp[100];
-                printf("Enter string for %s: ", var_names[v]);
-                scanf("%s", temp);
-                // store string if needed
             }
             v++;
-            fmt_ptr++; // skip next char too
+            j++;
         }
-        fmt_ptr++;
+        else {
+            putchar(format_str[j]);
+        }
     }
 }
 
-// Handle printf
 void handlePrintf(char *line) {
     char var_names[10][50];
     char format_str[100];
@@ -175,16 +195,26 @@ void handlePrintf(char *line) {
     // Print formatted output
     int v = 0;
     for (int j = 0; format_str[j] != '\0'; j++) {
-        if (format_str[j] == '%' && (format_str[j + 1] == 'd')) {
+        if (format_str[j] == '%') {
             int idx = getVarIndex(var_names[v]);
             if (idx != -1) {
-                printf("%d", vars[idx].value);
-            } else {
-                printf("Error");
+                if (format_str[j + 1] == 'd') {
+                    printf("%d", vars[idx].value);
+                }
+                else if (format_str[j + 1] == 'c') {
+                    printf(" %c", vars[idx].charValue);
+                } 
+                else if (format_str[j + 1] == 's') {
+                    printf("%s", vars[idx].strValue);
+                }
+            }
+            else {
+                printf("Variable %s not declared.\n", var_names[v]);
             }
             v++;
             j++;
-        } else {
+        }
+        else {
             putchar(format_str[j]);
         }
     }
@@ -192,8 +222,86 @@ void handlePrintf(char *line) {
     putchar('\n');
 }
 
+// Handle variable assignments like a = 5;
+void handleAssignment(char *line) {
+    char varName[50], op1[50], op2[50], opChar;  // ✅ Renamed from 'operator' to 'opChar'
+    int varIndex;
 
-// Entry point
+    // Remove spaces and trailing characters
+    clean(line);
+
+    // Check for expression with operator
+    if (sscanf(line, "%s = %s %c %s", varName, op1, &opChar, op2) == 4) {
+        varIndex = getVarIndex(varName);
+        if (varIndex == -1) {
+            printf("Variable %s not declared.\n", varName);
+            return;
+        }
+
+        // Get operand values (either variable or number)
+        int val1 = isalpha(op1[0]) ? vars[getVarIndex(op1)].value : atoi(op1);
+        int val2 = isalpha(op2[0]) ? vars[getVarIndex(op2)].value : atoi(op2);
+
+        // Perform operation
+        switch (opChar) {
+            case '+': vars[varIndex].value = val1 + val2; break;
+            case '-': vars[varIndex].value = val1 - val2; break;
+            case '*': vars[varIndex].value = val1 * val2; break;
+            case '/': vars[varIndex].value = (val2 != 0) ? val1 / val2 : 0; break;
+            default: printf("Unknown operator: %c\n", opChar); return;
+        }
+    } 
+    // Handle simple assignment: x = y or x = 10
+    else if (sscanf(line, "%s = %s", varName, op1) == 2) {
+        varIndex = getVarIndex(varName);
+        if (varIndex == -1) {
+            printf("Variable %s not declared.\n", varName);
+            return;
+        }
+
+        if (vars[varIndex].isChar == 0) {
+            vars[varIndex].value = isalpha(op1[0]) ? vars[getVarIndex(op1)].value : atoi(op1);
+        } else if (vars[varIndex].isChar == 1) {
+            vars[varIndex].charValue = isalpha(op1[0]) ? vars[getVarIndex(op1)].charValue : op1[0];
+        } else if (vars[varIndex].isChar == 2) {
+            strcpy(vars[varIndex].strValue, op1);
+        }
+    } else {
+        printf("Invalid assignment: %s\n", line);
+    }
+}
+
+void custom_fun(FILE *input) {
+    char line[256];
+    bool start = false;
+
+    while (fgets(line, sizeof(line), input)) {
+        line[strcspn(line, "\n")] = 0;  // remove newline
+
+        if (!start && strstr(line, "void")) {
+            start = true;
+            continue;
+        }
+
+        if (start) {
+            if (strstr(line, "int ")) {
+                declareVariables(line);
+            } else if (strstr(line, "char ")) {
+                declareVariables(line);
+            } else if (strstr(line, "scanf")) {
+                handleScanf(line);
+            } else if (strstr(line, "printf")) {
+                handlePrintf(line);
+            } else if (strchr(line, '=')) {
+                handleAssignment(line);
+            }
+            if (strstr(line, "int mian")) {
+                break;
+            }
+        }
+    }
+}
+
 int main() {
     FILE *input = fopen("input.txt", "r");
     if (!input) {
@@ -209,6 +317,7 @@ int main() {
         else if (strstr(line, "scanf")) handleScanf(line);
         else if (strstr(line, "printf")) handlePrintf(line);
         else if (strchr(line, '=')) handleAssignment(line);
+        //else if (strstr(line, "()" && strstr(line, "void") == N) custom_fun(input);
     }
 
     fclose(input);
