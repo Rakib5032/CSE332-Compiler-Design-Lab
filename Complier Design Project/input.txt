@@ -1,14 +1,23 @@
-#include<stdio.h>
+#include <stdio.h>
+
 int main() {
     int a, b;
-    int res;
-    res = b + a;
-    scanf(" Enter a and b %d %d", &a, &b);
+    
+    //printf("Enter a and b: ");
+    scanf("Enter a and b %d %d", &a, &b);
+    
     int result = a + b;
-    printf("a is %d , b is %d and result is %d", a, b, result);
+    printf("a is %d, b is %d, and result is %d", a, b, result);
+
+    char c;
+    printf("Enter a character: ");
+    scanf(" %c", &c);
+    printf("You entered: %c", c);
 
     char name [100];
-    scanf("Enter your name %s", &name);
-    scanf("%s", [100]);
+    printf("Enter your name: ");
+    scanf("%s", name);
+    printf("Your name is: %s", name);
 
+    return 0;
 }
