@@ -1,2 +1,2 @@
-  // // Remove trailing characters
-    // clean(line);
+removeKeyword(line, "char");
+    // removeKeyword(

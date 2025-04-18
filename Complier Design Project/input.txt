@@ -1,23 +1,74 @@
 #include <stdio.h>
 
+void fun(){
+    printf("Hello, I am inside the custom function");
+    int num1, num2, ans;
+    num1 = 10;
+    printf("num1 = %d", num1);
+    num2 = 20;
+    printf("num2 = %d", num2);
+    ans = num1 + num2;
+    printf("Inside the function num1 + num2 = %d", ans);
+
+    printf("Enter a string inside the custom function");
+    char instr [100];
+    scanf("%s", &instr);
+    printf("Inside function string %s", instr);
+}
+
 int main() {
+    printf("Hello world");
+    printf("--------------------------");
+
     int a, b;
     
     //printf("Enter a and b: ");
+    //scanf("%d %d", &a, &b);
+
+    //Taking input
     scanf("Enter a and b %d %d", &a, &b);
     
     int result = a + b;
     printf("a is %d, b is %d, and result is %d", a, b, result);
 
+    int res;
+    res = a + b;
+    printf("The result = a + b formate %d", res);
+
+    //Take a character as input 
     char c;
     printf("Enter a character: ");
     scanf(" %c", &c);
     printf("You entered: %c", c);
 
+    //Take a String as input
     char name [100];
     printf("Enter your name: ");
     scanf("%s", name);
     printf("Your name is: %s", name);
+
+    // Declared number
+    int num;
+    num = 100000;
+    printf("Declared number is %d", num);
+
+    //Declared character
+    char x;
+    x = 'A';
+    printf("Declared character is %c", x);
+
+    //Declared String
+    char str [10];
+    str = "Rakib";
+    printf("Declared String is %s", str);
+
+
+    printf("__________________________");
+    printf("__________________________");
+
+
+    //declare function
+    fun ();
 
     return 0;
 }

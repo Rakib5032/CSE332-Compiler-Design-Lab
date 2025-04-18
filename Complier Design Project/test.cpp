@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <iostream>
+using namespace std;
+
 #define MAX_SIZE 100
 #define MAX_VAR 100
 
@@ -212,16 +215,27 @@ void handlePrintf(char *line) {
     putchar('\n');
 }
 
+void removeKeyword(char *str, const char *keyword) {
+    char *pos;
+    while ((pos = strstr(str, keyword)) != NULL) {
+        size_t len = strlen(keyword) +1;
+        memmove(pos, pos + len, strlen(pos + len));
+    }
+}
+
 void handleAssignment(char *line) {
     char varName[50], op1[50], op2[50], opChar;
     int varIndex;
 
-    printf("%s\n", line);
+    removeKeyword(line, "char");
+    removeKeyword(line, "int");
+
+
     // Remove trailing characters
     clean(line);
-    printf("%s\n", line);
+    // printf("%s\n", line);
 
-    // Case 1: Arithmetic Expression (e.g., a = b + c;)
+    // Case 1: Arithmetic Expression (a = b + c;)
     if (sscanf(line, "%s = %s %c %s", varName, op1, &opChar, op2) == 4) {
         varIndex = getVarIndex(varName);
         if (varIndex == -1) {
@@ -240,7 +254,7 @@ void handleAssignment(char *line) {
             default: printf("Unsupported operator: %c\n", opChar);
         }
     }
-    // Case 2: Simple assignment (e.g., x = 5;)
+    // Case 2: Simple assignment ( x = 5;)
     else if (sscanf(line, "%s = %s", varName, op1) == 2) {
         varIndex = getVarIndex(varName);
         if (varIndex == -1) {
@@ -249,11 +263,12 @@ void handleAssignment(char *line) {
         }
 
         int srcIndex = getVarIndex(op1);
-        if (vars[varIndex].isChar == 0) {  // int
+        if (vars[varIndex].isChar == 0) {
             vars[varIndex].value = (srcIndex != -1) ? vars[srcIndex].value : atoi(op1);
+        
         }
         else if (vars[varIndex].isChar == 1) {  // char
-            vars[varIndex].charValue = (srcIndex != -1) ? vars[srcIndex].charValue : op1[0];
+            vars[varIndex].charValue = (srcIndex != -1) ? vars[srcIndex].charValue : op1[1];
         }
         else if (vars[varIndex].isChar == 2) {  // string
             if (op1[0] == '"') {
@@ -269,33 +284,49 @@ void handleAssignment(char *line) {
     }
 }
 
-void custom_fun(FILE *input) {
+void custom_fun() {
+    FILE *input = fopen("input.txt", "r");
+    if (!input) {
+        printf("Failed to open input.txt\n");
+        return ;
+    }
     char line[256];
     bool start = false;
 
     while (fgets(line, sizeof(line), input)) {
-        line[strcspn(line, "\n")] = 0;  // remove newline
+        while (fgets(line, sizeof(line), input)) {
+            if (strstr(line, "//")) continue;
 
-        if (!start && strstr(line, "void")) {
-            start = true;
-            continue;
-        }
+            if (strstr(line, "int main()") != NULL) {
+               return;
+            }
 
-        if (start) {
-            if (strstr(line, "int ")) {
-                declareVariables(line);
-            } else if (strstr(line, "char ")) {
-                declareVariables(line);
-            } else if (strstr(line, "scanf")) {
-                handleScanf(line);
-            } else if (strstr(line, "printf")) {
-                handlePrintf(line);
-            } else if (strchr(line, '=')) {
-                handleAssignment(line);
+            if (strstr(line, "int ")){
+                if(strchr(line, '=')){
+                    char temp[250];
+                    strcpy(temp, line);
+                    declareVariables(line);
+                    handleAssignment(temp);
+                }
+                else{
+                    declareVariables(line);
+                }
+            } 
+            else if (strstr(line, "char ")) {
+                if(strchr(line, '=')){
+                    char temp[250];
+                    strcpy(temp, line);
+                    declareVariables(line);
+                    handleAssignment(temp);
+                }
+                else{
+                    declareVariables(line);
+                }
             }
-            if (strstr(line, "int mian")) {
-                break;
-            }
+    
+            else if (strstr(line, "scanf") ) handleScanf(line);
+            else if (strstr(line, "printf")) handlePrintf(line);
+            else if (strchr(line, '=')) handleAssignment(line);
         }
     }
 }
@@ -308,16 +339,45 @@ int main() {
     }
 
     char line[256];
+    bool track = false;
     while (fgets(line, sizeof(line), input)) {
+        //cout << line << "\n";
         if (strstr(line, "//")) continue;
-        else if (strstr(line, "int main")) continue;
-        else if (strstr(line, "return")) break;
-        if (strstr(line, "int ")) declareVariables(line);
-        if(strstr(line, "char ")) declareVariables(line);
-        if (strstr(line, "scanf")) handleScanf(line);
-        if (strstr(line, "printf")) handlePrintf(line);
-        if (strchr(line, '=')) handleAssignment(line);
-        //else if (strstr(line, "()" && strstr(line, "void") == N) custom_fun(input);
+        if (strstr(line, "int main()") != NULL) {
+            track = true;
+            continue;
+        }
+        if (strstr(line, "return")) break;
+
+        if (strstr(line, "int ") && track){
+            if(strchr(line, '=')){
+                char temp[250];
+                strcpy(temp, line);
+                declareVariables(line);
+                handleAssignment(temp);
+            }
+            else{
+                declareVariables(line);
+            }
+        } 
+        else if (strstr(line, "char ") && track) {
+            if(strchr(line, '=')){
+                char temp[250];
+                strcpy(temp, line);
+                declareVariables(line);
+                handleAssignment(temp);
+            }
+            else{
+                declareVariables(line);
+            }
+        }
+
+        else if (strstr(line, "scanf") && track) handleScanf(line);
+        else if (strstr(line, "printf") && track) handlePrintf(line);
+        else if (strchr(line, '=') && track) handleAssignment(line);
+        else if (strchr(line, '(') && strchr(line, ')') && strchr(line, '"') == NULL &&
+         (strstr(line, "main()") == NULL) && track)
+            custom_fun();
     }
 
     fclose(input);
